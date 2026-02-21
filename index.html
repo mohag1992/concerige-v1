@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0f0f1a;
+      --bg-card: #1a1a2e;
+      --bg-elevated: #252542;
+      --accent: #c9a962;
+      --accent-soft: rgba(201, 169, 98, 0.2);
+      --text: #e8e6e3;
+      --text-muted: #9a9aaa;
+      --success: #4ade80;
+      --radius: 16px;
+      --radius-sm: 12px;
+      --tap-min: 48px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100dvh;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 0 0 env(safe-area-inset-bottom);
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px 24px;
+    }
+
+    /* Screen: all screens are stacked, only one visible */
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      animation: fadeIn 0.3s ease;
+    }
+    .screen.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+    }
+    .header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Step 1: Request type grid */
+    .prompt {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      flex: 1;
+      align-content: start;
+    }
+    .option {
+      aspect-ratio: 1;
+      min-height: 120px;
+      background: var(--bg-card);
+      border: 2px solid var(--bg-elevated);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .option:active {
+      transform: scale(0.98);
+    }
+    .option:hover, .option:focus {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .option .icon {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+    .option .label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .option .label-en {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Step 2: Confirm */
+    .confirm-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--bg-elevated);
+    }
+    .confirm-card .icon {
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .confirm-card .label {
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .confirm-card .label-en {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+    .confirm-request-id-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+    }
+    .confirm-request-id-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .confirm-request-id-badge {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 2em;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .confirm-count-choose {
+      margin-top: 16px;
+    }
+    .confirm-count-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .confirm-count-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .confirm-count-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 1.4rem;
+      font-weight: 600;
+      cursor: pointer;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .confirm-count-btn:active {
+      transform: scale(0.95);
+    }
+    .confirm-count-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .confirm-count-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 2.5rem;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn {
+      flex: 1;
+      min-height: var(--tap-min);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-deep);
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text);
+    }
+
+    /* Step 3: Done */
+    .done-icon {
+      font-size: 4rem;
+      text-align: center;
+      margin: 32px 0 16px;
+    }
+    .done-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .done-message {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .done-room {
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-align: center;
+    }
+    .done-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* Back link */
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-decoration: none;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+    .back:hover {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Screen 1: Choose request (Tap 1) -->
+    <section class="screen active" id="screen-choose">
+      <div class="header">
+        <h1>CONCIERGE</h1>
+        <p>Tap to choose your request</p>
+      </div>
+      <p class="prompt">What do you need?</p>
+      <div class="grid" id="options-grid"></div>
+    </section>
+
+    <!-- Screen 1b: Other options (Tap 2 when "Other" was chosen) -->
+    <section class="screen" id="screen-other">
+      <a href="#" class="back" id="back-from-other" aria-label="Back">← Back</a>
+      <div class="header">
+        <h1>CONCIERGE</h1>
+        <p>Other</p>
+      </div>
+      <p class="prompt">Choose your request</p>
+      <div class="grid" id="other-options-grid">
+        <button type="button" class="option" data-id="laundry" data-icon="👕" data-label="Laundry" data-label-en="Laundry">
+          <span class="icon">👕</span>
+          <span class="label">Laundry</span>
+          <span class="label-en">Laundry</span>
+        </button>
+        <button type="button" class="option" data-id="iron" data-icon="👔" data-label="Iron" data-label-en="Iron">
+          <span class="icon">👔</span>
+          <span class="label">Iron</span>
+          <span class="label-en">Iron</span>
+        </button>
+        <button type="button" class="option" data-id="blanket" data-icon="🪑" data-label="Blanket" data-label-en="Blanket">
+          <span class="icon">🪑</span>
+          <span class="label">Blanket</span>
+          <span class="label-en">Blanket</span>
+        </button>
+        <button type="button" class="option" data-id="adapter" data-icon="🔌" data-label="Adapter" data-label-en="Adapter">
+          <span class="icon">🔌</span>
+          <span class="label">Adapter</span>
+          <span class="label-en">Adapter</span>
+        </button>
+        <button type="button" class="option" data-id="restaurant" data-icon="🍽️" data-label="Restaurant" data-label-en="Restaurant">
+          <span class="icon">🍽️</span>
+          <span class="label">Restaurant</span>
+          <span class="label-en">Restaurant</span>
+        </button>
+        <button type="button" class="option" data-id="sightseeing" data-icon="🗾" data-label="Sightseeing" data-label-en="Sightseeing">
+          <span class="icon">🗾</span>
+          <span class="label">Sightseeing</span>
+          <span class="label-en">Sightseeing</span>
+        </button>
+        <button type="button" class="option" data-id="luggage" data-icon="🧳" data-label="Luggage" data-label-en="Luggage">
+          <span class="icon">🧳</span>
+          <span class="label">Luggage</span>
+          <span class="label-en">Luggage</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Screen 3: Confirm (Tap 2 or Tap 3) -->
+    <section class="screen" id="screen-confirm">
+      <a href="#" class="back" id="back-from-confirm" aria-label="Back">← Back</a>
+      <div class="header">
+        <h1>CONCIERGE</h1>
+        <p>Please confirm</p>
+      </div>
+      <div class="confirm-card">
+        <div class="icon" id="confirm-icon">🛁</div>
+        <div class="label" id="confirm-label">Towels</div>
+        <div class="label-en" id="confirm-label-en">Towels</div>
+        <div class="confirm-request-id-wrap" id="confirm-request-id-wrap">
+          <span class="confirm-request-id-label">Request ID</span>
+          <span class="confirm-request-id-badge" id="confirm-request-id-badge">—</span>
+        </div>
+        <div class="confirm-count-choose" id="confirm-count-choose">
+          <p class="confirm-count-label">Quantity</p>
+          <div class="confirm-count-stepper">
+            <button type="button" class="confirm-count-btn" id="count-minus" aria-label="Decrease">−</button>
+            <span class="confirm-count-value" id="confirm-count-value">1</span>
+            <button type="button" class="confirm-count-btn" id="count-plus" aria-label="Increase">＋</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-send">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 4: Done (request completed) -->
+    <section class="screen" id="screen-done">
+      <div class="done-icon" id="done-icon">✅</div>
+      <h2 class="done-title" id="done-title">Request received</h2>
+      <p class="done-message" id="done-message">Staff will assist you shortly.</p>
+      <p class="done-room" id="done-room"></p>
+      <p class="done-count" id="done-count"></p>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const PARAMS = new URLSearchParams(location.search);
+      const room = PARAMS.get('room') || PARAMS.get('room_id') || PARAMS.get('roomNo') || '';
+
+      const CONFIG = {
+        towels:    { id: 'towels',    icon: '🛁', label: 'Towels',     labelEn: 'Towels' },
+        pillows:   { id: 'pillows',   icon: '🛏️', label: 'Pillows',    labelEn: 'Pillows' },
+        toiletries:{ id: 'toiletries',icon: '🧴', label: 'Toiletries', labelEn: 'Toiletries' },
+        water:     { id: 'water',     icon: '🥤', label: 'Water',      labelEn: 'Water' },
+        cleaning:  { id: 'cleaning',  icon: '🧹', label: 'Cleaning',  labelEn: 'Cleaning' },
+        wakeup:    { id: 'wakeup',    icon: '⏰', label: 'Wake-up call', labelEn: 'Wake-up call' },
+        taxi:      { id: 'taxi',      icon: '🚕', label: 'Taxi',       labelEn: 'Taxi' },
+        other:     { id: 'other',     icon: '💬', label: 'Other',      labelEn: 'Other' },
+      };
+      const MAIN_OPTIONS = [
+        CONFIG.towels,
+        CONFIG.pillows,
+        CONFIG.toiletries,
+        CONFIG.cleaning,
+        CONFIG.water,
+        CONFIG.wakeup,
+        CONFIG.taxi,
+        CONFIG.other,
+      ];
+
+      const screens = {
+        choose: document.getElementById('screen-choose'),
+        other: document.getElementById('screen-other'),
+        confirm: document.getElementById('screen-confirm'),
+        done: document.getElementById('screen-done'),
+      };
+      const confirmIcon = document.getElementById('confirm-icon');
+      const confirmLabel = document.getElementById('confirm-label');
+      const confirmLabelEn = document.getElementById('confirm-label-en');
+      const confirmRequestIdBadge = document.getElementById('confirm-request-id-badge');
+      const confirmCountValue = document.getElementById('confirm-count-value');
+      const btnSend = document.getElementById('btn-send');
+      const doneIcon = document.getElementById('done-icon');
+      const doneTitle = document.getElementById('done-title');
+      const doneMessage = document.getElementById('done-message');
+      const doneRoom = document.getElementById('done-room');
+      const doneCount = document.getElementById('done-count');
+
+      let selectedRequest = null;
+      let chosenQuantity = 1;
+      const COUNT_MIN = 1;
+      const COUNT_MAX = 20;
+      const NO_QUANTITY_IDS = ['cleaning','wakeup','taxi'];
+
+      function getRequestCount() {
+        var n = parseInt(sessionStorage.getItem('concierge_request_count') || '0', 10);
+        return isNaN(n) ? 0 : n;
+      }
+      function incRequestCount() {
+        var n = getRequestCount() + 1;
+        sessionStorage.setItem('concierge_request_count', String(n));
+        return n;
+      }
+
+      function renderOptionsGrid() {
+        const grid = document.getElementById('options-grid');
+        grid.innerHTML = '';
+        MAIN_OPTIONS.forEach(function (opt) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'option';
+          btn.dataset.id = opt.id;
+          btn.dataset.icon = opt.icon;
+          btn.dataset.label = opt.label;
+          btn.dataset.labelEn = opt.labelEn;
+          btn.innerHTML = '<span class="icon">' + opt.icon + '</span><span class="label">' + opt.label + '</span><span class="label-en">' + opt.labelEn + '</span>';
+          grid.appendChild(btn);
+        });
+      }
+      renderOptionsGrid();
+
+      function show(screenKey) {
+        Object.keys(screens).forEach(function (k) {
+          screens[k].classList.toggle('active', k === screenKey);
+        });
+      }
+
+      document.getElementById('options-grid').addEventListener('click', function (e) {
+        const btn = e.target.closest('.option');
+        if (!btn) return;
+        if (btn.dataset.id === 'other') {
+          show('other');
+          return;
+        }
+        setConfirm(btn);
+        show('confirm');
+      });
+
+      document.getElementById('other-options-grid').addEventListener('click', function (e) {
+        const btn = e.target.closest('.option');
+        if (!btn) return;
+        setConfirm(btn);
+        show('confirm');
+      });
+
+      function setConfirm(btn) {
+        selectedRequest = {
+          id: btn.dataset.id,
+          icon: btn.dataset.icon,
+          label: btn.dataset.label,
+          labelEn: btn.dataset.labelEn,
+        };
+        confirmIcon.textContent = selectedRequest.icon;
+        confirmLabel.textContent = selectedRequest.label;
+        confirmLabelEn.textContent = selectedRequest.labelEn;
+        var nextCount = getRequestCount() + 1;
+        confirmRequestIdBadge.textContent = String(nextCount);
+        btnSend.textContent = 'Send (# ' + nextCount + ')';
+        chosenQuantity = 1;
+        confirmCountValue.textContent = String(chosenQuantity);
+        document.getElementById('count-minus').disabled = chosenQuantity <= COUNT_MIN;
+        document.getElementById('count-plus').disabled = chosenQuantity >= COUNT_MAX;
+        var needQuantity = NO_QUANTITY_IDS.indexOf(selectedRequest.id) < 0;
+        document.getElementById('confirm-count-choose').style.display = needQuantity ? '' : 'none';
+      }
+
+      function updateCountStepper() {
+        confirmCountValue.textContent = String(chosenQuantity);
+        document.getElementById('count-minus').disabled = chosenQuantity <= COUNT_MIN;
+        document.getElementById('count-plus').disabled = chosenQuantity >= COUNT_MAX;
+      }
+      document.getElementById('count-minus').addEventListener('click', function () {
+        if (chosenQuantity > COUNT_MIN) {
+          chosenQuantity -= 1;
+          updateCountStepper();
+        }
+      });
+      document.getElementById('count-plus').addEventListener('click', function () {
+        if (chosenQuantity < COUNT_MAX) {
+          chosenQuantity += 1;
+          updateCountStepper();
+        }
+      });
+
+      document.getElementById('back-from-other').addEventListener('click', function (e) {
+        e.preventDefault();
+        show('choose');
+      });
+      document.getElementById('back-from-confirm').addEventListener('click', function (e) {
+        e.preventDefault();
+        show(selectedRequest && otherIds.indexOf(selectedRequest.id) >= 0 ? 'other' : 'choose');
+      });
+      var otherIds = ['laundry', 'iron', 'blanket', 'adapter', 'restaurant', 'sightseeing', 'luggage'];
+      document.getElementById('btn-cancel').addEventListener('click', function () {
+        show(selectedRequest && otherIds.indexOf(selectedRequest.id) >= 0 ? 'other' : 'choose');
+      });
+
+      document.getElementById('btn-send').addEventListener('click', function () {
+        if (!selectedRequest) return;
+        var requestNumber = incRequestCount();
+        var quantity = NO_QUANTITY_IDS.indexOf(selectedRequest.id) >= 0 ? 1 : chosenQuantity;
+        var completeUrl = (location.origin && location.protocol !== 'file:')
+          ? (location.origin + '/requestcomplete.html')
+          : 'requestcomplete.html';
+        sendRequest(selectedRequest, requestNumber, quantity).then(function () {
+          location.href = completeUrl;
+        }).catch(function () {
+          location.href = completeUrl;
+        });
+      });
+
+      function sendRequest(req, requestNumber, quantity) {
+        var payload = {
+          request_type: req.id,
+          label_ja: req.label,
+          label_en: req.labelEn,
+          quantity: quantity,
+          room: room || null,
+          request_count: requestNumber,
+          at: new Date().toISOString(),
+        };
+        console.log('Concierge request:', payload);
+        return fetch('api/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

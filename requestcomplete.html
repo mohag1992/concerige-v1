@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Request Complete | Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0f0f1a;
+      --bg-card: #1a1a2e;
+      --bg-elevated: #252542;
+      --accent: #c9a962;
+      --accent-soft: rgba(201, 169, 98, 0.2);
+      --text: #e8e6e3;
+      --text-muted: #9a9aaa;
+      --success: #4ade80;
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100dvh;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .complete-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    .complete-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .complete-message {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+    .btn-staff {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: var(--bg-deep);
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .btn-staff:hover {
+      filter: brightness(1.1);
+    }
+    .btn-staff:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="complete-icon">✅</div>
+  <h1 class="complete-title">Request received</h1>
+  <p class="complete-message">Staff will assist you shortly.</p>
+  <a href="staff.html" class="btn-staff" id="btn-staff">View staff chat</a>
+
+  <script>
+    (function () {
+      var staffHref = (location.origin && location.protocol !== 'file:')
+        ? (location.origin + '/staff.html')
+        : 'staff.html';
+      var btn = document.getElementById('btn-staff');
+      if (btn) btn.href = staffHref;
+    })();
+  </script>
+</body>
+</html>

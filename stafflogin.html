@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Staff Login | Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0f0f1a;
+      --bg-card: #1a1a2e;
+      --bg-elevated: #252542;
+      --accent: #c9a962;
+      --accent-soft: rgba(201, 169, 98, 0.2);
+      --text: #e8e6e3;
+      --text-muted: #9a9aaa;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100dvh;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-elevated);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+    }
+    .login-logo {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+    .login-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .field {
+      margin-bottom: 18px;
+    }
+    .field label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: var(--bg-elevated);
+      border: 1px solid var(--bg-elevated);
+      border-radius: 10px;
+      color: var(--text);
+    }
+    .field input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .field input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--bg-deep);
+      margin-top: 8px;
+    }
+    .btn-login:hover { filter: brightness(1.1); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .login-error {
+      font-size: 0.85rem;
+      color: #f87171;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 20px;
+    }
+    .login-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 16px;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .login-hint a { color: var(--accent); }
+    .login-hint code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-logo">🏨</div>
+    <h1 class="login-title">Staff Login</h1>
+    <form id="login-form">
+      <div class="field">
+        <label for="staff-id">Staff ID</label>
+        <input type="text" id="staff-id" name="staffId" placeholder="Enter staff ID" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-login" id="btn-login">Log in</button>
+    </form>
+    <p class="login-error" id="login-error" role="alert"></p>
+    <p class="login-hint" id="login-hint"></p>
+  </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById('login-form');
+      var btn = document.getElementById('btn-login');
+      var errEl = document.getElementById('login-error');
+      var hintEl = document.getElementById('login-hint');
+      var API_BASE = (location.protocol === 'http:' || location.protocol === 'https:')
+        ? location.origin
+        : 'http://localhost:3001';
+      var loginUrl = API_BASE + '/api/auth/login';
+
+      if (location.protocol === 'file:') {
+        hintEl.innerHTML = 'Open via server: <a href="' + loginUrl.replace('/api/auth/login', '/stafflogin.html') + '">' + API_BASE + '/stafflogin.html</a>';
+      }
+
+      function showError(msg) {
+        errEl.textContent = msg || '';
+      }
+      function showHint(html) {
+        hintEl.innerHTML = html || '';
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var staffId = document.getElementById('staff-id').value.trim();
+        var password = document.getElementById('password').value;
+        showError('');
+        showHint('');
+        btn.disabled = true;
+
+        fetch(loginUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staffId: staffId, password: password }),
+        })
+          .then(function (res) {
+            var ct = res.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+              throw new Error('Server did not return JSON');
+            }
+            return res.json();
+          })
+          .then(function (data) {
+            if (data && data.ok && data.token) {
+              sessionStorage.setItem('staffAuth', data.token);
+              location.href = API_BASE + '/staff.html';
+            } else {
+              showError('Invalid Staff ID or password');
+              btn.disabled = false;
+            }
+          })
+          .catch(function () {
+            showError('Connection error');
+            showHint(
+              'Run <code>node server.js</code> in the project folder, then open<br>' +
+              '<a href="' + API_BASE + '/stafflogin.html">' + API_BASE + '/stafflogin.html</a>'
+            );
+            btn.disabled = false;
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
