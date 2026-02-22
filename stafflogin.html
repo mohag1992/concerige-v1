@@ -144,10 +144,11 @@
       var API_BASE = (location.protocol === 'http:' || location.protocol === 'https:')
         ? location.origin
         : 'http://localhost:3001';
+      var PRODUCTION_URL = 'https://concerige-v1.vercel.app';
       var loginUrl = API_BASE + '/api/auth/login';
 
       if (location.protocol === 'file:') {
-        hintEl.innerHTML = 'Open via server: <a href="' + loginUrl.replace('/api/auth/login', '/stafflogin.html') + '">' + API_BASE + '/stafflogin.html</a>';
+        hintEl.innerHTML = 'Open via server: <a href="' + PRODUCTION_URL + '/stafflogin.html">' + PRODUCTION_URL + '/stafflogin.html</a>';
       }
 
       function showError(msg) {
@@ -189,8 +190,8 @@
           .catch(function () {
             showError('Connection error');
             showHint(
-              'Run <code>node server.js</code> in the project folder, then open<br>' +
-              '<a href="' + API_BASE + '/stafflogin.html">' + API_BASE + '/stafflogin.html</a>'
+              'Run <code>node server.js</code> in the project folder, or open<br>' +
+              '<a href="' + PRODUCTION_URL + '/stafflogin.html">' + PRODUCTION_URL + '/stafflogin.html</a>'
             );
             btn.disabled = false;
           });

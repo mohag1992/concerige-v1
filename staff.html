@@ -317,6 +317,7 @@
       const API_BASE = (location.protocol === 'http:' || location.protocol === 'https:')
         ? location.origin
         : 'http://localhost:3001';
+      const PRODUCTION_URL = 'https://concerige-v1.vercel.app';
       const API_URL = API_BASE + '/api/requests';
 
       document.getElementById('logout-link').addEventListener('click', function (e) {
@@ -432,8 +433,8 @@
             setApiStatus('Connection error', false);
             showHint(
               'Cannot connect to server.<br>' +
-              'Run <code>node server.js</code> in terminal, then open<br>' +
-              '<a href="' + API_BASE + '/staff.html">' + API_BASE + '/staff.html</a>'
+              'Run <code>node server.js</code> in terminal, or open<br>' +
+              '<a href="' + PRODUCTION_URL + '/staff.html">' + PRODUCTION_URL + '/staff.html</a>'
             );
           });
       }
