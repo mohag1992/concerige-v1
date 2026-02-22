@@ -43,11 +43,16 @@ node server.js
 - **手順**: ベースURL（省略時は自動）、部屋番号（例: 301）を入力 → 「QRコードを生成」をクリック
 - 表示されたQRコードを印刷して各客室に掲示。ゲストがスキャンすると `?room=301` 付きでコンシェルジュが開きます。
 
-### 本番デプロイ
+### 本番デプロイ（Vercel）
 
-1. `index.html`、`qr.html`、`server.js` をホテルのサーバーまたはVercel/Netlify等にデプロイ
-2. 上記QR生成ページで部屋番号ごとのQRコードを生成・印刷
-3. 客室の案内やデスクにQRコードを掲示
+1. リポジトリを Vercel にデプロイ（`api/` がサーバーレス API として動作）
+2. **Staff 画面でリクエストを表示する場合**: Vercel ではサーバーレスが別インスタンスのため、リクエスト一覧を共有するには Redis を用意する
+   - [Upstash Redis](https://console.upstash.com/) で DB を作成
+   - Vercel の Project → Settings → Environment Variables に追加:
+     - `KV_REST_API_URL` = Upstash の REST URL（HTTPS）
+     - `KV_REST_API_TOKEN` = Upstash の Token
+   - 再デプロイ後、ゲストが送信したリクエストが Staff 画面に表示される
+3. 上記QR生成ページで部屋番号ごとのQRコードを生成・印刷し、客室に掲示
 
 ### API連携
 
