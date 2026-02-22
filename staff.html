@@ -268,6 +268,105 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    /* Status timeline (Uber/Grab style) */
+    .request-status {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .status-timeline {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin-bottom: 10px;
+    }
+    .status-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-width: 0;
+    }
+    .status-step::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--bg-elevated);
+      z-index: 0;
+    }
+    .status-step:first-child::before { left: 50%; }
+    .status-step:last-child::before { right: 50%; }
+    .status-step.done::before { background: var(--accent); }
+    .status-step.active::before { background: var(--accent); }
+    .status-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--bg-elevated);
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+    .status-step.done .status-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .status-step.active .status-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .status-step.done .status-dot::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      font-size: 9px;
+      color: var(--bg-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .status-label {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .status-step.done .status-label,
+    .status-step.active .status-label { color: var(--accent); }
+    .status-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .status-btn {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--bg-elevated);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .status-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .status-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -318,13 +417,23 @@
         ? location.origin
         : 'http://localhost:3001';
       const PRODUCTION_URL = 'https://concerige-v1.vercel.app';
-      const API_URL = API_BASE + '/api/concierge-edge?path=requests';
+      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      const API_URL = isLocal ? (API_BASE + '/api/requests') : (API_BASE + '/api/concierge-edge?path=requests');
+      const API_REQUEST = isLocal ? (API_BASE + '/api/request') : (API_BASE + '/api/concierge-edge?path=request');
 
       document.getElementById('logout-link').addEventListener('click', function (e) {
         e.preventDefault();
         sessionStorage.removeItem('staffAuth');
         location.href = loginUrl;
       });
+
+      var STATUS_ORDER = [
+        { key: 'sent', label: 'Sent', labelJa: '送信済' },
+        { key: 'read', label: 'Read', labelJa: '確認済' },
+        { key: 'on_the_way', label: 'On the way', labelJa: '対応中' },
+        { key: 'completed', label: 'Completed', labelJa: '完了' }
+      ];
+      function statusIndex(s) { return Math.max(0, STATUS_ORDER.findIndex(function (x) { return x.key === (s || 'sent'); })); }
 
       function formatTime(iso) {
         if (!iso) return '—';
@@ -338,13 +447,36 @@
           d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
       }
 
+      function renderStatusTimeline(r) {
+        var cur = statusIndex(r.status);
+        var steps = STATUS_ORDER.map(function (s, i) {
+          var done = i < cur;
+          var active = i === cur;
+          var cls = 'status-step' + (done ? ' done' : '') + (active ? ' active' : '');
+          return '<div class="' + cls + '"><div class="status-dot"></div><div class="status-label">' + s.label + '</div></div>';
+        }).join('');
+        var nextSteps = [];
+        if (cur < 1) nextSteps.push({ status: 'read', label: 'Mark read' });
+        if (cur < 2) nextSteps.push({ status: 'on_the_way', label: 'On the way' });
+        if (cur < 3) nextSteps.push({ status: 'completed', label: 'Completed' });
+        var btns = nextSteps.map(function (s) {
+          return '<button type="button" class="status-btn" data-status="' + s.status + '">' + s.label + '</button>';
+        }).join('');
+        return '<div class="request-status">' +
+          '<div class="status-timeline">' + steps + '</div>' +
+          (btns ? '<div class="status-actions">' + btns + '</div>' : '') +
+          '</div>';
+      }
+
       function renderRequest(r) {
         const isNew = r.request_number > lastRequestCount;
         const icon = r.icon || '💬';
         const qtyHtml = (r.quantity && r.quantity > 1)
           ? '<div class="msg-qty">Quantity: ' + r.quantity + '</div>' : '';
+        var statusHtml = renderStatusTimeline(r);
+        var reqStatus = r.status || 'sent';
         return (
-          '<div class="msg-row' + (isNew ? ' new' : '') + '" data-id="' + (r.id || r.request_number) + '">' +
+          '<div class="msg-row' + (isNew ? ' new' : '') + '" data-id="' + (r.id || r.request_number) + '" data-status="' + reqStatus + '">' +
             '<div class="msg-avatar">' + icon + '</div>' +
             '<div class="msg-bubble">' +
               '<div class="msg-sender">Room ' + (r.room || '—') + ' · #' + (r.request_number || '') + '</div>' +
@@ -357,6 +489,7 @@
                 '</div>' +
               '</div>' +
               '<div class="msg-time">' + formatTime(r.at) + '</div>' +
+              statusHtml +
             '</div>' +
           '</div>'
         );
@@ -412,12 +545,28 @@
             const hadScrollBottom = chatEl.scrollHeight - chatEl.scrollTop <= chatEl.clientHeight + 50;
             requests.forEach(function (r) {
               const id = String(r.id || r.request_number || '');
-              if (existingIds.has(id)) return;
+              var row = chatEl.querySelector('.msg-row[data-id="' + id + '"]');
+              if (row) {
+                var currentStatus = row.getAttribute('data-status');
+                var newStatus = r.status || 'sent';
+                if (currentStatus !== newStatus) {
+                  var block = row.querySelector('.request-status');
+                  if (block) {
+                    block.innerHTML = renderStatusTimeline(r);
+                    row.setAttribute('data-status', newStatus);
+                  }
+                }
+                existingIds.add(id);
+                return;
+              }
               existingIds.add(id);
               const wrap = document.createElement('div');
               wrap.innerHTML = renderRequest(r);
-              const row = wrap.firstElementChild;
-              if (row) chatEl.appendChild(row);
+              const newRow = wrap.firstElementChild;
+              if (newRow) {
+                chatEl.appendChild(newRow);
+                if ((r.status || 'sent') === 'sent') markAsReadIfSent(newRow, r);
+              }
             });
             if (hadScrollBottom || (requests.length > 0 && (requests[requests.length - 1].request_number > lastRequestCount))) {
               chatEl.scrollTop = chatEl.scrollHeight;
@@ -438,6 +587,52 @@
             );
           });
       }
+
+      function updateRequestStatus(rowEl, newStatus) {
+        var id = rowEl.getAttribute('data-id');
+        if (!id) return;
+        var statusBlock = rowEl.querySelector('.request-status');
+        if (!statusBlock) return;
+        fetch(API_REQUEST, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, status: newStatus }),
+        })
+          .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('PATCH failed')); })
+          .then(function () {
+            statusBlock.innerHTML = renderStatusTimeline({ status: newStatus });
+            rowEl.setAttribute('data-status', newStatus);
+          })
+          .catch(function () { setApiStatus('Update failed', false); });
+      }
+
+      function markAsReadIfSent(rowEl, request) {
+        var id = rowEl.getAttribute('data-id');
+        var status = (request && request.status) || 'sent';
+        if (!id || status !== 'sent') return;
+        fetch(API_REQUEST, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, status: 'read' }),
+        })
+          .then(function (res) { return res.ok ? res.json() : null; })
+          .then(function () {
+            var block = rowEl.querySelector('.request-status');
+            if (block) {
+              block.innerHTML = renderStatusTimeline({ status: 'read' });
+              rowEl.setAttribute('data-status', 'read');
+            }
+          });
+      }
+
+      chatEl.addEventListener('click', function (e) {
+        if (e.target.classList.contains('status-btn')) {
+          var btn = e.target;
+          var row = btn.closest('.msg-row');
+          var status = btn.getAttribute('data-status');
+          if (row && status) updateRequestStatus(row, status);
+        }
+      });
 
       function startPolling() {
         fetchRequests();

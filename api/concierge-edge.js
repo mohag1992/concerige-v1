@@ -50,11 +50,14 @@ export default async function handler(req) {
     try {
       const body = await req.json().catch(() => ({}));
       store.totalRequestCount += 1;
+      const now = new Date().toISOString();
       const payload = {
         ...body,
         request_number: store.totalRequestCount,
         id: body.id || Date.now().toString(36),
-        at: body.at || new Date().toISOString(),
+        at: body.at || now,
+        status: 'sent',
+        status_updated_at: now,
       };
       store.requests.push(payload);
       if (store.requests.length > MAX_REQUESTS) store.requests.shift();
@@ -69,8 +72,41 @@ export default async function handler(req) {
     }
   }
 
+  if ((path === 'request' || path.endsWith('request')) && req.method === 'PATCH') {
+    try {
+      const body = await req.json().catch(() => ({}));
+      const id = body.id;
+      const status = (body.status || '').toLowerCase().replace(/\s+/g, '_');
+      const allowed = ['sent', 'read', 'on_the_way', 'completed'];
+      if (!id || !allowed.includes(status)) {
+        return jsonResponse({ ok: false, error: 'Invalid id or status' }, 400);
+      }
+      const reqItem = store.requests.find((r) => String(r.id) === String(id));
+      if (!reqItem) return jsonResponse({ ok: false, error: 'Request not found' }, 404);
+      const now = new Date().toISOString();
+      reqItem.status = status;
+      reqItem.status_updated_at = now;
+      return jsonResponse({ ok: true, id: reqItem.id, status: reqItem.status, status_updated_at: now });
+    } catch (e) {
+      return jsonResponse({ ok: false, error: 'Invalid JSON' }, 400);
+    }
+  }
+
   if ((path === 'requests' || path.endsWith('requests')) && req.method === 'GET') {
     return jsonResponse({ requests: store.requests || [] });
+  }
+
+  if ((path === 'request' || path.endsWith('request')) && req.method === 'GET') {
+    try {
+      const u = new URL(req.url);
+      const id = u.searchParams.get('id');
+      if (!id) return jsonResponse({ error: 'Missing id' }, 400);
+      const reqItem = store.requests.find((r) => String(r.id) === String(id));
+      if (!reqItem) return jsonResponse({ error: 'Not found' }, 404);
+      return jsonResponse({ request: reqItem });
+    } catch (e) {
+      return jsonResponse({ error: 'Bad request' }, 400);
+    }
   }
 
   return jsonResponse({ requests: [] }, 404);

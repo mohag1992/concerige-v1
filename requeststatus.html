@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Request Status | Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0f0f1a;
+      --bg-card: #1a1a2e;
+      --bg-elevated: #252542;
+      --accent: #c9a962;
+      --accent-soft: rgba(201, 169, 98, 0.2);
+      --text: #e8e6e3;
+      --text-muted: #9a9aaa;
+      --success: #4ade80;
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100dvh;
+      padding: 24px;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    .back-link:hover { color: var(--accent); }
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--bg-elevated);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .card-detail {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .status-timeline {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin: 20px 0;
+    }
+    .status-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-width: 0;
+    }
+    .status-step::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--bg-elevated);
+      z-index: 0;
+    }
+    .status-step:first-child::before { left: 50%; }
+    .status-step:last-child::before { right: 50%; }
+    .status-step.done::before { background: var(--accent); }
+    .status-step.active::before { background: var(--accent); }
+    .status-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--bg-elevated);
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+    .status-step.done .status-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .status-step.active .status-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .status-step.done .status-dot::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      font-size: 9px;
+      color: var(--bg-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .status-label {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .status-step.done .status-label,
+    .status-step.active .status-label { color: var(--accent); }
+    .loading, .error {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 24px;
+    }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <a href="#" class="back-link" id="back-link">← Back</a>
+  <div id="content">
+    <div id="loading" class="loading">Loading...</div>
+    <div id="error" class="error" style="display:none;"></div>
+    <div id="card" style="display:none;">
+      <div class="card">
+        <div class="card-title" id="request-title">Request #<span id="request-num"></span></div>
+        <div class="card-detail" id="request-detail"></div>
+        <div class="status-timeline" id="status-timeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search || '');
+      var id = params.get('id');
+      var origin = (location.origin && location.protocol !== 'file:') ? location.origin : '';
+      var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      var API_REQUEST = isLocal ? (origin + '/api/request') : (origin + '/api/concierge-edge?path=request');
+      var POLL_MS = 4000;
+      var pollTimer = null;
+
+      var STATUS_ORDER = [
+        { key: 'sent', label: 'Sent', labelJa: '送信済' },
+        { key: 'read', label: 'Read', labelJa: '確認済' },
+        { key: 'on_the_way', label: 'On the way', labelJa: '対応中' },
+        { key: 'completed', label: 'Completed', labelJa: '完了' }
+      ];
+      function statusIndex(s) {
+        return Math.max(0, STATUS_ORDER.findIndex(function (x) { return x.key === (s || 'sent'); }));
+      }
+
+      document.getElementById('back-link').href = origin ? (origin + '/requestcomplete.html' + (id ? '?id=' + encodeURIComponent(id) : '')) : ('requestcomplete.html' + (id ? '?id=' + encodeURIComponent(id) : ''));
+
+      function renderTimeline(status) {
+        var cur = statusIndex(status);
+        return STATUS_ORDER.map(function (s, i) {
+          var done = i < cur;
+          var active = i === cur;
+          var cls = 'status-step' + (done ? ' done' : '') + (active ? ' active' : '');
+          return '<div class="' + cls + '"><div class="status-dot"></div><div class="status-label">' + s.label + '</div></div>';
+        }).join('');
+      }
+
+      function showRequest(request) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+        var card = document.getElementById('card');
+        card.style.display = 'block';
+        document.getElementById('request-num').textContent = request.request_number || '—';
+        document.getElementById('request-detail').textContent = (request.label_ja || request.label_en || request.label || 'Request') + (request.room ? ' · Room ' + request.room : '');
+        document.getElementById('status-timeline').innerHTML = renderTimeline(request.status || 'sent');
+      }
+
+      function showError(msg) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('card').style.display = 'none';
+        var el = document.getElementById('error');
+        el.style.display = 'block';
+        el.textContent = msg || 'Request not found.';
+      }
+
+      function fetchStatus() {
+        if (!id) {
+          showError('No request ID.');
+          return;
+        }
+        var url = API_REQUEST + (API_REQUEST.indexOf('?') >= 0 ? '&' : '?') + 'id=' + encodeURIComponent(id);
+        fetch(url)
+          .then(function (res) {
+            if (!res.ok) throw new Error('Not found');
+            return res.json();
+          })
+          .then(function (data) {
+            if (data && data.request) showRequest(data.request);
+            else showError('Request not found.');
+          })
+          .catch(function () {
+            showError('Could not load request. Check your connection.');
+          });
+      }
+
+      fetchStatus();
+      pollTimer = setInterval(fetchStatus, POLL_MS);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') fetchStatus();
+      });
+    })();
+  </script>
+</body>
+</html>

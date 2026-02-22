@@ -556,14 +556,17 @@
         if (!selectedRequest) return;
         var requestNumber = incRequestCount();
         var quantity = NO_QUANTITY_IDS.indexOf(selectedRequest.id) >= 0 ? 1 : chosenQuantity;
-        var completeUrl = (location.origin && location.protocol !== 'file:')
+        var baseComplete = (location.origin && location.protocol !== 'file:')
           ? (location.origin + '/requestcomplete.html')
           : 'requestcomplete.html';
-        sendRequest(selectedRequest, requestNumber, quantity).then(function () {
-          location.href = completeUrl;
-        }).catch(function () {
-          location.href = completeUrl;
-        });
+        sendRequest(selectedRequest, requestNumber, quantity)
+          .then(function (res) { return res.json().then(function (data) { return data.id; }); })
+          .then(function (id) {
+            location.href = id ? baseComplete + '?id=' + encodeURIComponent(id) : baseComplete;
+          })
+          .catch(function () {
+            location.href = baseComplete;
+          });
       });
 
       function sendRequest(req, requestNumber, quantity) {
@@ -577,7 +580,8 @@
           at: new Date().toISOString(),
         };
         console.log('Concierge request:', payload);
-        return fetch('api/concierge-edge?path=request', {
+        var requestApi = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'api/request' : 'api/concierge-edge?path=request';
+        return fetch(requestApi, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

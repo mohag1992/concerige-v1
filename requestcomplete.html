@@ -76,15 +76,25 @@
   <div class="complete-icon">✅</div>
   <h1 class="complete-title">Request received</h1>
   <p class="complete-message">Staff will assist you shortly.</p>
+  <p id="track-wrap" style="display:none; margin-bottom: 16px;">
+    <a href="#" class="btn-staff" id="btn-track" style="background: var(--bg-elevated); color: var(--accent); border: 2px solid var(--accent);">Track request status</a>
+  </p>
   <a href="staff.html" class="btn-staff" id="btn-staff">View staff chat</a>
 
   <script>
     (function () {
-      var staffHref = (location.origin && location.protocol !== 'file:')
-        ? (location.origin + '/staff.html')
-        : 'staff.html';
+      var origin = (location.origin && location.protocol !== 'file:') ? location.origin : '';
+      var staffHref = origin ? (origin + '/staff.html') : 'staff.html';
       var btn = document.getElementById('btn-staff');
       if (btn) btn.href = staffHref;
+      var params = new URLSearchParams(location.search || '');
+      var requestId = params.get('id');
+      var trackWrap = document.getElementById('track-wrap');
+      var trackBtn = document.getElementById('btn-track');
+      if (requestId && trackWrap && trackBtn) {
+        trackWrap.style.display = 'block';
+        trackBtn.href = origin ? (origin + '/requeststatus.html?id=' + encodeURIComponent(requestId)) : ('requeststatus.html?id=' + encodeURIComponent(requestId));
+      }
     })();
   </script>
 </body>

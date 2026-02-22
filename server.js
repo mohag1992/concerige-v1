@@ -68,15 +68,50 @@ const server = http.createServer((req, res) => {
       try {
         const payload = JSON.parse(body);
         totalRequestCount += 1;
+        const now = new Date().toISOString();
         payload.request_number = totalRequestCount;
-        payload.id = Date.now().toString(36);
-        payload.at = payload.at || new Date().toISOString();
+        payload.id = payload.id || Date.now().toString(36);
+        payload.at = payload.at || now;
+        payload.status = 'sent';
+        payload.status_updated_at = now;
         requestsStore.push(payload);
         if (requestsStore.length > MAX_REQUESTS) requestsStore.shift();
         console.log('[Concierge] Request #' + totalRequestCount + ':', payload);
-        // TODO: Forward to hotel PMS, Slack, or notification system
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, id: payload.id, request_number: totalRequestCount, total_requests: totalRequestCount }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'PATCH' && pathname === '/api/request') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const id = data.id;
+        const status = (data.status || '').toLowerCase().replace(/\s+/g, '_');
+        const allowed = ['sent', 'read', 'on_the_way', 'completed'];
+        if (!id || !allowed.includes(status)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Invalid id or status' }));
+          return;
+        }
+        const reqItem = requestsStore.find((r) => String(r.id) === String(id));
+        if (!reqItem) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Request not found' }));
+          return;
+        }
+        const now = new Date().toISOString();
+        reqItem.status = status;
+        reqItem.status_updated_at = now;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, id: reqItem.id, status: reqItem.status, status_updated_at: now }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
@@ -107,6 +142,26 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/request') {
+    const q = (req.url || '').split('?')[1] || '';
+    const params = new URLSearchParams(q);
+    const id = params.get('id');
+    if (!id) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing id' }));
+      return;
+    }
+    const reqItem = requestsStore.find((r) => String(r.id) === String(id));
+    if (!reqItem) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ request: reqItem }));
+    return;
+  }
+
   if (req.method === 'GET') {
     if (pathname === '/' || pathname === '') {
       serveFile(res, 'qr.html', 'text/html; charset=utf-8');
@@ -126,6 +181,10 @@ const server = http.createServer((req, res) => {
     }
     if (pathname === '/requestcomplete.html') {
       serveFile(res, 'requestcomplete.html', 'text/html; charset=utf-8');
+      return;
+    }
+    if (pathname === '/requeststatus.html') {
+      serveFile(res, 'requeststatus.html', 'text/html; charset=utf-8');
       return;
     }
     if (pathname === '/stafflogin.html' || pathname === '/stafflogin') {
