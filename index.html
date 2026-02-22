@@ -577,7 +577,7 @@
           at: new Date().toISOString(),
         };
         console.log('Concierge request:', payload);
-        return fetch('api/request', {
+        return fetch('api/concierge-edge?path=request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

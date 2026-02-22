@@ -318,7 +318,7 @@
         ? location.origin
         : 'http://localhost:3001';
       const PRODUCTION_URL = 'https://concerige-v1.vercel.app';
-      const API_URL = API_BASE + '/api/requests';
+      const API_URL = API_BASE + '/api/concierge-edge?path=requests';
 
       document.getElementById('logout-link').addEventListener('click', function (e) {
         e.preventDefault();

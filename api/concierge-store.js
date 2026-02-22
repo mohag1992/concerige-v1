@@ -17,9 +17,14 @@ function parsePath(req) {
   return query.path || pathname.replace(/.*\//, '') || '';
 }
 
+function getRedisConfig() {
+  return {
+    base: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  };
+}
 function redisGet() {
-  const base = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { base, token } = getRedisConfig();
   if (!base || !token) return Promise.resolve(null);
   const url = base.replace(/\/$/, '') + '/get/' + encodeURIComponent(STORE_KEY);
   return fetch(url, { headers: { Authorization: 'Bearer ' + token } })
@@ -35,8 +40,7 @@ function redisGet() {
 }
 
 function redisSet(data) {
-  const base = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { base, token } = getRedisConfig();
   if (!base || !token) return Promise.resolve();
   const url = base.replace(/\/$/, '') + '/set/' + encodeURIComponent(STORE_KEY);
   return fetch(url, {

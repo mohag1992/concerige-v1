@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/request", "destination": "/api/concierge-store?path=request" },
-    { "source": "/api/requests", "destination": "/api/concierge-store?path=requests" }
+    { "source": "/api/request", "destination": "/api/concierge-edge?path=request" },
+    { "source": "/api/requests", "destination": "/api/concierge-edge?path=requests" }
   ]
 }
