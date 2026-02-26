@@ -7,7 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const ROOT = __dirname;
 
 const STAFF_ID = process.env.STAFF_ID || 'staff';
@@ -185,6 +185,10 @@ const server = http.createServer((req, res) => {
     }
     if (pathname === '/requeststatus.html') {
       serveFile(res, 'requeststatus.html', 'text/html; charset=utf-8');
+      return;
+    }
+    if (pathname === '/guest.html' || pathname === '/guest') {
+      serveFile(res, 'guest.html', 'text/html; charset=utf-8');
       return;
     }
     if (pathname === '/stafflogin.html' || pathname === '/stafflogin') {
